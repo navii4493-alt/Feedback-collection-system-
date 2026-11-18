@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Feedback Form – Demo</title>
+<style>
+:root{--bg:#f4f5f7;--panel:#fff;--fg:#1d2330;--mut:#667085;--acc:#2f6fed;--bd:#d9dde5;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10131a;--panel:#171b24;--fg:#e8ecf4;--mut:#97a1b5;--acc:#6d9bff;--bd:#2a3040}}
+:root[data-theme="dark"]{--bg:#10131a;--panel:#171b24;--fg:#e8ecf4;--mut:#97a1b5;--acc:#6d9bff;--bd:#2a3040}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif}
+main{max-width:560px;margin:0 auto;padding:16px}
+h1{font-size:19px;margin:0 0 2px}
+.sub{margin:0 0 14px;color:var(--mut);font-size:13px}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tabs button{flex:1;background:transparent;color:var(--fg);border:1px solid var(--bd);border-radius:8px;padding:8px 4px;font:600 13px system-ui,sans-serif;cursor:pointer}
+.tabs button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.card{background:var(--panel);border:1px solid var(--bd);border-radius:12px;padding:14px}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
+input,select,textarea{width:100%;box-sizing:border-box;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:8px;padding:9px;font:inherit}
+.go{margin-top:14px;width:100%;background:var(--acc);color:#fff;border:0;border-radius:8px;padding:10px;font:600 15px system-ui,sans-serif;cursor:pointer}
+.msg{margin-top:10px;font-size:13px;color:var(--acc)}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 9px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap}
+th{color:var(--mut)}
+.big{font-size:34px;font-weight:700;margin:2px 0 10px}
+.note{margin-top:14px;font-size:12px;color:var(--mut)}
+.hide{display:none}
+</style>
+</head>
+<body>
+<main>
+<h1>Feedback Form</h1>
+<p class="sub">Student event feedback – browser demo</p>
+<div class="tabs"><button class="on" data-v="f">Feedback Form</button><button data-v="v">View Feedback</button><button data-v="a">Average Report</button></div>
+
+<div class="card" id="f">
+<label>Student Name</label><input id="sn" autocomplete="off">
+<label>Event Name</label><input id="en" autocomplete="off">
+<label>Rating</label><select id="rt"><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select>
+<label>Comments</label><textarea id="cm" rows="3"></textarea>
+<button class="go" id="sb">Submit</button>
+<div class="msg" id="ms"></div>
+</div>
+
+<div class="card hide" id="v"><div class="tw"><table id="vt"></table></div></div>
+
+<div class="card hide" id="a">
+<div class="sub">Overall average rating</div><div class="big" id="ov">-</div>
+<div class="tw"><table id="at"></table></div>
+</div>
+
+<p class="note">Demo only: entries are kept in this browser, standing in for the MySQL table. The real program uses Java and MySQL on a computer.</p>
+</main>
+<script>
+var rows=[];
+try{rows=JSON.parse(localStorage.getItem("fb2")||"[]")}catch(e){rows=[]}
+function $(i){return document.getElementById(i)}
+function save(){try{localStorage.setItem("fb2",JSON.stringify(rows))}catch(e){}}
+function fill(tb,head,data){
+  tb.innerHTML="";var h=tb.insertRow();
+  head.forEach(function(c){var th=document.createElement("th");th.textContent=c;h.appendChild(th)});
+  data.forEach(function(r){var tr=tb.insertRow();r.forEach(function(v){tr.insertCell().textContent=v})});
+  if(!data.length){var tr=tb.insertRow();var td=tr.insertCell();td.colSpan=head.length;td.textContent="No feedback yet."}
+}
+function show(v){
+  ["f","v","a"].forEach(function(k){$(k).classList.toggle("hide",k!==v)});
+  document.querySelectorAll(".tabs button").forEach(function(b){b.classList.toggle("on",b.dataset.v===v)});
+  if(v==="v")fill($("vt"),["id","student","event","rating","comments"],rows.map(function(r){return[r.id,r.s,r.e,r.r,r.c]}));
+  if(v==="a"){
+    var tot=0,g={};
+    rows.forEach(function(r){tot+=r.r;(g[r.e]=g[r.e]||[]).push(r.r)});
+    $("ov").textContent=rows.length?(tot/rows.length).toFixed(2)+" / 5":"-";
+    fill($("at"),["event","avg rating","count"],Object.keys(g).map(function(k){
+      var a=g[k],s=a.reduce(function(x,y){return x+y},0);return[k,(s/a.length).toFixed(2),a.length]}));
+  }
+}
+document.querySelectorAll(".tabs button").forEach(function(b){b.onclick=function(){show(b.dataset.v)}});
+$("sb").onclick=function(){
+  var s=$("sn").value.trim(),e=$("en").value.trim();
+  if(!s||!e){$("ms").textContent="Please enter student name and event name.";return}
+  rows.push({id:rows.length?rows[rows.length-1].id+1:1,s:s,e:e,r:parseInt($("rt").value,10),c:$("cm").value.trim()});
+  save();$("sn").value="";$("en").value="";$("cm").value="";$("ms").textContent="Feedback saved. Thank you!";
+};
+</script>
+</body>
+</html>
